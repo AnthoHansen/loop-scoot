@@ -204,11 +204,16 @@ local function safeDrop(session)
     local yaw=(C.carryAttach and C.carryAttach.yaw) or -90
     return {x=p.x-math.sin(radians)*d,y=p.y+math.cos(radians)*d,z=p.z,heading=(heading+yaw)%360}
 end
+-- An adopted rental never joins the fleet: grounding it would respawn it at its home forever.
+local function release(entry,coords)
+    if entry.adopted then deleteOwned(entry);fleet[entry.id]=nil;return end
+    ground(entry,coords)
+end
 local function recoverCarry(session)
     if not session or not session.carrying then return end
     local entry=fleet[session.carrying]
     session.carrying=nil;session.carryToken=nil
-    if entry and entry.state=='carried' and entry.carrier==session.source then ground(entry,safeDrop(session)) end
+    if entry and entry.state=='carried' and entry.carrier==session.source then release(entry,safeDrop(session)) end
 end
 local function cleanup(session,reason)
     if not session or session.cleaning then return end
@@ -221,7 +226,7 @@ local function cleanup(session,reason)
     if session.truck then
         for _,id in pairs(session.truck.slots) do
             local entry=fleet[id]
-            if entry and entry.state=='loaded' and entry.owner==session.source then ground(entry,entry.home) end
+            if entry and entry.state=='loaded' and entry.owner==session.source then release(entry,entry.home) end
         end
         deleteOwned(session.truck)
     end
@@ -269,11 +274,11 @@ end)
 
 local function adoptable(vehicle,src)
     if C.collectRentals==false then return false,ScootText('err.rentalNotCollectable') end
-    if Entity(vehicle).state.loopScoot~=nil then
-        if type(ScootRentalCollectable)~='function' then return false,ScootText('err.rentalOwned') end
-        local ok,message=ScootRentalCollectable(vehicle,src)
-        if not ok then return false,message or ScootText('err.rentalInUse') end
-    end
+    -- Untagged scooters are not rentals (a client can spawn the model), so they are never adopted.
+    if Entity(vehicle).state.loopScoot==nil then return false,ScootText('err.scooterBusyOrGone') end
+    if type(ScootRentalCollectable)~='function' then return false,ScootText('err.rentalOwned') end
+    local ok,message=ScootRentalCollectable(vehicle,src)
+    if not ok then return false,message or ScootText('err.rentalInUse') end
     return true
 end
 local function truckPoint(session,slot)
@@ -552,7 +557,7 @@ lib.callback.register('loop-scoot:collection:finish',function(src,token)
         entry.state,entry.carrier='carried',src;session.carrying=entry.id;session.carryToken=action.token
         entry.coords=position(GetEntityCoords(ped));session.lastGround={x=entry.coords.x,y=entry.coords.y,z=entry.coords.z-ScootCollectionMotion.originToGround,heading=GetEntityHeading(ped)}
     elseif action.kind=='drop' then
-        session.carrying=nil;session.carryToken=nil;ground(entry,action.dropCoords or safeDrop(session))
+        session.carrying=nil;session.carryToken=nil;release(entry,action.dropCoords or safeDrop(session))
     elseif action.kind=='load' then
         session.carrying=nil;session.carryToken=nil;session.truck.slots[action.slot]=entry.id
         entry.state,entry.carrier,entry.owner,entry.truckNetId,entry.slot='loaded',nil,src,session.truck.netId,action.slot
@@ -560,12 +565,16 @@ lib.callback.register('loop-scoot:collection:finish',function(src,token)
         session.truck.slots[action.slot]=nil;session.carrying=entry.id;session.carryToken=action.token
         entry.state,entry.carrier,entry.owner,entry.truckNetId,entry.slot='carried',src,nil,nil,nil
     elseif action.kind=='service' then
-        local count=0
+        local count,adopted=0,0
         for slot,id in pairs(session.truck.slots) do
             local item=fleet[id]
-            if item and item.state=='loaded' and item.owner==src and item.slot==slot then count=count+1 end
+            if item and item.state=='loaded' and item.owner==src and item.slot==slot then
+                count=count+1
+                if item.adopted then adopted=adopted+1 end
+            end
         end
-        local reward=count*math.max(0,math.floor(tonumber(C.payPerScooter) or 0))
+        local reward=(count-adopted)*math.max(0,math.floor(tonumber(C.payPerScooter) or 0))
+            +adopted*math.max(0,math.floor(tonumber(C.payPerRental) or 0))
         if reward>0 then
             local account=C.payAccount or 'money'
             if ScootBridge.AccountBalance(p,account)==nil then

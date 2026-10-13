@@ -252,9 +252,12 @@ local function rentalForEntity(entity)
 end
 function ScootRentalCollectable(entity, collector)
     local rental = rentalForEntity(entity)
-    if not rental then return true end
+    -- Only a live rental can be adopted: a loop_scooter the server did not rent out is not ours to collect.
+    if not rental then return false, ScootText('err.scooterBusyOrGone') end
     if rental.phase ~= 'active' or not rental.released then return false, ScootText('err.scooterEmerging') end
-    if rental.source ~= collector and playerFor(rental) then
+    -- The renter must not hand their own rental in.
+    if rental.source == collector then return false, ScootText('err.rentalInUse') end
+    if playerFor(rental) then
         local ped = GetPlayerPed(rental.source)
         local radius = (Config.Collection and Config.Collection.rentalGuardRadius) or 40.0
         if ped and ped ~= 0 and DoesEntityExist(ped) and DoesEntityExist(entity)

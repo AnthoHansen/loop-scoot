@@ -39,6 +39,9 @@ Config.Collection = {
     pickupDistance = 0.55,
 
     collectRentals = true, rentalGuardRadius = 40.0,
+    -- Pay per collected customer rental. Keep it at 0 while rentals are free (Config.Price = 0),
+    -- or two players can rent and hand in the same scooter for money.
+    payPerRental = 0,
 
     depot = { x = 772.2295, y = -1264.0328, z = 25.368, heading = 180.0, nativeMlo = true,
 

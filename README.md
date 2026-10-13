@@ -100,6 +100,7 @@ Run `scootdoctor` in the server console after the first start. It prints a confi
 | `Config.NativePhone` | `false` | `{ resource = 'name' }` to open the station dialog from your own phone resource (`open` and `isPhoneOpen` exports) |
 | `Config.ScooterEnergy.rangeKm` | `55` | Battery range of a rental scooter |
 | `Config.Collection.payPerScooter` | `35` | Pay per scooter handed in |
+| `Config.Collection.payPerRental` | `0` | Pay per abandoned customer rental handed in. Keep it at `0` while rentals are free |
 | `Config.Collection.allowedJob` | `nil` | Restrict the collector job to one framework job |
 | `Config.Collection.maxWorkers` | `8` | Workers on duty at the same time |
 
