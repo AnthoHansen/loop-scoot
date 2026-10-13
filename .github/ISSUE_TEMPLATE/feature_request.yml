@@ -1,0 +1,12 @@
+name: Feature request
+description: Suggest an idea for LOOP Scoot
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What you would like and why it helps your server.
+    validations:
+      required: true

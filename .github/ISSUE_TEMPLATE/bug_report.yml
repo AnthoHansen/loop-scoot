@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as expected
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Run `scootdoctor` in the server console and paste the report below.
+  - type: input
+    id: version
+    attributes:
+      label: LOOP Scoot version
+      placeholder: 1.41.0
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - ESX
+        - QBCore
+        - Qbox
+        - ox_core
+        - Standalone
+    validations:
+      required: true
+  - type: input
+    id: artifact
+    attributes:
+      label: Server artifact and ox_lib version
+      placeholder: 12345 / ox_lib 3.x
+  - type: textarea
+    id: description
+    attributes:
+      label: What happens
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console errors and scootdoctor report
+      render: shell
